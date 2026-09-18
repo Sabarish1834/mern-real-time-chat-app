@@ -1,7 +1,10 @@
 import { useState } from "react";
 import axios from "axios";
 
-const API_URL = "http://localhost:5000/api";
+// API URL
+const API_URL =
+    import.meta.env.VITE_API_URL ||
+    "http://localhost:5000/api";
 
 function Auth({ onLogin }) {
     const [isLogin, setIsLogin] = useState(true);
@@ -28,9 +31,10 @@ function Auth({ onLogin }) {
             setLoading(true);
 
             if (isLogin) {
-                
+
+                // ==============================
                 // LOGIN
-                
+                // ==============================
 
                 const response = await axios.post(
                     `${API_URL}/auth/login`,
@@ -46,7 +50,11 @@ function Auth({ onLogin }) {
                 } = response.data;
 
                 // Save login details
-                localStorage.setItem("token", token);
+                localStorage.setItem(
+                    "token",
+                    token
+                );
+
                 localStorage.setItem(
                     "username",
                     loggedInUsername
@@ -57,9 +65,12 @@ function Auth({ onLogin }) {
                     token,
                     username: loggedInUsername,
                 });
+
             } else {
-                // 
+
+                // ==============================
                 // REGISTER
+                // ==============================
 
                 await axios.post(
                     `${API_URL}/auth/register`,
@@ -80,12 +91,21 @@ function Auth({ onLogin }) {
                 // Switch to login
                 setIsLogin(true);
             }
+
         } catch (err) {
+
+            console.error(
+                "AUTH ERROR:",
+                err
+            );
+
             const message =
                 err.response?.data?.error ||
+                err.response?.data?.message ||
                 "Something went wrong. Please try again.";
 
             setError(message);
+
         } finally {
             setLoading(false);
         }
@@ -104,9 +124,9 @@ function Auth({ onLogin }) {
     return (
         <div className="auth-page">
 
-            {/* 
+            {/* ==============================
                 LEFT BRAND SECTION
-             */}
+            ============================== */}
 
             <div className="auth-brand">
 
@@ -144,6 +164,7 @@ function Auth({ onLogin }) {
 
                         </div>
 
+
                         <div className="auth-feature">
 
                             <div>🟢</div>
@@ -159,6 +180,7 @@ function Auth({ onLogin }) {
                             </div>
 
                         </div>
+
 
                         <div className="auth-feature">
 
@@ -180,6 +202,7 @@ function Auth({ onLogin }) {
 
                 </div>
 
+
                 {/* Background Glow */}
 
                 <div className="auth-glow glow-one"></div>
@@ -189,9 +212,9 @@ function Auth({ onLogin }) {
             </div>
 
 
-            {/* 
+            {/* ==============================
                 RIGHT AUTH SECTION
-             */}
+            ============================== */}
 
             <div className="auth-section">
 
@@ -212,9 +235,9 @@ function Auth({ onLogin }) {
                     </div>
 
 
-                    {/* 
+                    {/* ==============================
                         AUTH HEADING
-                     */}
+                    ============================== */}
 
                     <div className="auth-heading">
 
@@ -233,9 +256,9 @@ function Auth({ onLogin }) {
                     </div>
 
 
-                    {/* 
+                    {/* ==============================
                         FORM
-                    */}
+                    ============================== */}
 
                     <form onSubmit={handleSubmit}>
 
@@ -331,7 +354,9 @@ function Auth({ onLogin }) {
                         )}
 
 
-                        {/* Submit Button */}
+                        {/* ==============================
+                            SUBMIT BUTTON
+                        ============================== */}
 
                         <button
                             type="submit"
@@ -354,6 +379,7 @@ function Auth({ onLogin }) {
                             ) : (
 
                                 <>
+
                                     {isLogin
                                         ? "Sign in"
                                         : "Create account"}
@@ -361,6 +387,7 @@ function Auth({ onLogin }) {
                                     <span>
                                         →
                                     </span>
+
                                 </>
 
                             )}
@@ -370,9 +397,9 @@ function Auth({ onLogin }) {
                     </form>
 
 
-                    {/* 
+                    {/* ==============================
                         DIVIDER
-                     */}
+                    ============================== */}
 
                     <div className="auth-divider">
 
@@ -383,9 +410,9 @@ function Auth({ onLogin }) {
                     </div>
 
 
-                    {/*
+                    {/* ==============================
                         LOGIN / REGISTER SWITCH
-                    */}
+                    ============================== */}
 
                     <div className="auth-switch">
 
@@ -407,9 +434,9 @@ function Auth({ onLogin }) {
                     </div>
 
 
-                    {/* 
+                    {/* ==============================
                         SECURITY
-                     */}
+                    ============================== */}
 
                     <div className="auth-security">
 
