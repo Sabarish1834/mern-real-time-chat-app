@@ -11,43 +11,90 @@ const Message = require("./models/Message");
 const app = express();
 const server = http.createServer(app);
 
+// ===============================
+// CORS
+// ===============================
+
+const allowedOrigins = [
+    "http://localhost:5173",
+    "https://mern-real-time-chat-app-rho.vercel.app",
+];
+
+app.use(
+    cors({
+        origin: allowedOrigins,
+        methods: ["GET", "POST", "PATCH", "PUT", "DELETE"],
+        credentials: true,
+    })
+);
+
+app.use(express.json());
+
+// ===============================
+// SOCKET.IO
+// ===============================
+
 const io = new Server(server, {
     cors: {
-        origin: "http://localhost:5173",
-        methods: ["GET", "POST", "PATCH"],
+        origin: allowedOrigins,
+        methods: ["GET", "POST", "PATCH", "PUT", "DELETE"],
+        credentials: true,
     },
 });
 
-app.use(cors());
-app.use(express.json());
+// ===============================
+// API ROUTES
+// ===============================
+
+app.get("/", (req, res) => {
+    res.json({
+        success: true,
+        message: "MERN Chat Backend is running",
+    });
+});
 
 app.use("/api/auth", require("./routes/auth"));
 app.use("/api/messages", require("./routes/messages"));
 
-// Store connected users
+// ===============================
+// STORE CONNECTED USERS
+// ===============================
+
 const userSocketMap = {};
 
-// Socket.IO
+// ===============================
+// SOCKET.IO CONNECTION
+// ===============================
+
 io.on("connection", (socket) => {
     console.log("User connected:", socket.id);
 
-    // User comes online
+    // =================================
+    // USER ONLINE
+    // =================================
+
     socket.on("userOnline", async (username) => {
-        userSocketMap[username] = socket.id;
-
-        console.log(`${username} is online`);
-
-        io.emit("onlineUsers", Object.keys(userSocketMap));
-
-        // Deliver previously sent messages
         try {
+            userSocketMap[username] = socket.id;
+
+            console.log(`${username} is online`);
+
+            // Send online users to everyone
+            io.emit(
+                "onlineUsers",
+                Object.keys(userSocketMap)
+            );
+
+            // Find pending messages
             const pendingMessages = await Message.find({
                 receiver: username,
                 status: "sent",
             });
 
+            // Mark pending messages as delivered
             for (const message of pendingMessages) {
                 message.status = "delivered";
+
                 await message.save();
 
                 const senderSocketId =
@@ -65,13 +112,16 @@ io.on("connection", (socket) => {
             }
         } catch (err) {
             console.error(
-                "DELIVERY STATUS ERROR...",
+                "DELIVERY STATUS ERROR:",
                 err.message
             );
         }
     });
 
-    // Send message
+    // =================================
+    // SEND MESSAGE
+    // =================================
+
     socket.on("sendMessage", async (data) => {
         try {
             const receiverSocketId =
@@ -96,7 +146,7 @@ io.on("connection", (socket) => {
                     updatedMessage || data
                 );
 
-                // Tell sender that message is delivered
+                // Tell sender message was delivered
                 socket.emit("messageStatus", {
                     messageId: data._id,
                     status: "delivered",
@@ -104,13 +154,16 @@ io.on("connection", (socket) => {
             }
         } catch (err) {
             console.error(
-                "SOCKET SEND MESSAGE ERROR...",
+                "SOCKET SEND MESSAGE ERROR:",
                 err.message
             );
         }
     });
 
-    // Mark messages as seen
+    // =================================
+    // MARK MESSAGES AS SEEN
+    // =================================
+
     socket.on("markMessagesSeen", async (data) => {
         try {
             const { sender, receiver } = data;
@@ -138,7 +191,7 @@ io.on("connection", (socket) => {
                 }
             );
 
-            // Tell sender that these messages are seen
+            // Tell sender messages are seen
             const senderSocketId =
                 userSocketMap[sender];
 
@@ -156,13 +209,16 @@ io.on("connection", (socket) => {
             }
         } catch (err) {
             console.error(
-                "SEEN STATUS ERROR...",
+                "SEEN STATUS ERROR:",
                 err.message
             );
         }
     });
 
-    // User disconnects
+    // =================================
+    // USER DISCONNECT
+    // =================================
+
     socket.on("disconnect", () => {
         for (const [username, id] of Object.entries(
             userSocketMap
@@ -182,19 +238,32 @@ io.on("connection", (socket) => {
             "onlineUsers",
             Object.keys(userSocketMap)
         );
+
+        console.log(
+            "User disconnected:",
+            socket.id
+        );
     });
 });
 
-// MongoDB connection
+// ===============================
+// MONGODB CONNECTION
+// ===============================
+
 mongoose
     .connect(process.env.MONGO_URI)
     .then(() => {
-        server.listen(5000, () => {
-            console.log(
-                "Server is Running on PORT 5000"
-            );
-        });
+        console.log("MongoDB Connected Successfully");
     })
     .catch((err) => {
-        console.log(err);
+        console.error(
+            "MongoDB Connection Error:",
+            err.message
+        );
     });
+
+// ===============================
+// VERCEL EXPORT
+// ===============================
+
+module.exports = server;
