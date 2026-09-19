@@ -50,7 +50,6 @@ const isAllowedOrigin = (origin) => {
     return false;
 };
 
-
 // ==========================================
 // EXPRESS CORS
 // ==========================================
@@ -58,14 +57,11 @@ const isAllowedOrigin = (origin) => {
 app.use(
     cors({
         origin: function (origin, callback) {
-
             if (isAllowedOrigin(origin)) {
                 callback(null, true);
             } else {
                 callback(
-                    new Error(
-                        "Not allowed by CORS"
-                    )
+                    new Error("Not allowed by CORS")
                 );
             }
         },
@@ -83,13 +79,11 @@ app.use(
     })
 );
 
-
 // ==========================================
 // BODY PARSER
 // ==========================================
 
 app.use(express.json());
-
 
 // ==========================================
 // SOCKET.IO
@@ -98,7 +92,6 @@ app.use(express.json());
 const io = new Server(server, {
     cors: {
         origin: function (origin, callback) {
-
             if (isAllowedOrigin(origin)) {
                 callback(null, true);
             } else {
@@ -120,7 +113,6 @@ const io = new Server(server, {
     },
 });
 
-
 // ==========================================
 // API ROUTES
 // ==========================================
@@ -135,7 +127,6 @@ app.use(
     require("./routes/messages")
 );
 
-
 // ==========================================
 // ROOT ROUTE
 // ==========================================
@@ -147,25 +138,21 @@ app.get("/", (req, res) => {
     });
 });
 
-
 // ==========================================
 // STORE CONNECTED USERS
 // ==========================================
 
 const userSocketMap = {};
 
-
 // ==========================================
 // SOCKET.IO CONNECTION
 // ==========================================
 
 io.on("connection", (socket) => {
-
     console.log(
         "User connected:",
         socket.id
     );
-
 
     // ======================================
     // USER ONLINE
@@ -174,7 +161,6 @@ io.on("connection", (socket) => {
     socket.on(
         "userOnline",
         async (username) => {
-
             userSocketMap[username] =
                 socket.id;
 
@@ -187,39 +173,32 @@ io.on("connection", (socket) => {
                 Object.keys(userSocketMap)
             );
 
-
             // ==================================
             // DELIVER PENDING MESSAGES
             // ==================================
 
             try {
-
                 const pendingMessages =
                     await Message.find({
                         receiver: username,
                         status: "sent",
                     });
 
-
                 for (
                     const message of
                     pendingMessages
                 ) {
-
                     message.status =
                         "delivered";
 
                     await message.save();
-
 
                     const senderSocketId =
                         userSocketMap[
                             message.sender
                         ];
 
-
                     if (senderSocketId) {
-
                         io.to(
                             senderSocketId
                         ).emit(
@@ -232,21 +211,16 @@ io.on("connection", (socket) => {
                                     "delivered",
                             }
                         );
-
                     }
                 }
-
             } catch (err) {
-
                 console.error(
                     "DELIVERY STATUS ERROR...",
                     err.message
                 );
-
             }
         }
     );
-
 
     // ======================================
     // SEND MESSAGE
@@ -255,17 +229,13 @@ io.on("connection", (socket) => {
     socket.on(
         "sendMessage",
         async (data) => {
-
             try {
-
                 const receiverSocketId =
                     userSocketMap[
                         data.receiver
                     ];
 
-
                 if (receiverSocketId) {
-
                     const updatedMessage =
                         await Message.findByIdAndUpdate(
                             data._id,
@@ -278,7 +248,6 @@ io.on("connection", (socket) => {
                             }
                         );
 
-
                     io.to(
                         receiverSocketId
                     ).emit(
@@ -286,7 +255,6 @@ io.on("connection", (socket) => {
                         updatedMessage ||
                             data
                     );
-
 
                     socket.emit(
                         "messageStatus",
@@ -298,20 +266,15 @@ io.on("connection", (socket) => {
                                 "delivered",
                         }
                     );
-
                 }
-
             } catch (err) {
-
                 console.error(
                     "SOCKET SEND MESSAGE ERROR...",
                     err.message
                 );
-
             }
         }
     );
-
 
     // ======================================
     // MARK MESSAGES AS SEEN
@@ -320,14 +283,11 @@ io.on("connection", (socket) => {
     socket.on(
         "markMessagesSeen",
         async (data) => {
-
             try {
-
                 const {
                     sender,
                     receiver,
                 } = data;
-
 
                 const messages =
                     await Message.find({
@@ -338,13 +298,11 @@ io.on("connection", (socket) => {
                         },
                     });
 
-
                 if (
                     messages.length === 0
                 ) {
                     return;
                 }
-
 
                 await Message.updateMany(
                     {
@@ -361,15 +319,12 @@ io.on("connection", (socket) => {
                     }
                 );
 
-
                 const senderSocketId =
                     userSocketMap[
                         sender
                     ];
 
-
                 if (senderSocketId) {
-
                     io.to(
                         senderSocketId
                     ).emit(
@@ -385,20 +340,15 @@ io.on("connection", (socket) => {
                                 ),
                         }
                     );
-
                 }
-
             } catch (err) {
-
                 console.error(
                     "SEEN STATUS ERROR...",
                     err.message
                 );
-
             }
         }
     );
-
 
     // ======================================
     // DISCONNECT
@@ -407,7 +357,6 @@ io.on("connection", (socket) => {
     socket.on(
         "disconnect",
         () => {
-
             for (
                 const [
                     username,
@@ -416,15 +365,12 @@ io.on("connection", (socket) => {
                     userSocketMap
                 )
             ) {
-
                 if (
                     id === socket.id
                 ) {
-
                     delete userSocketMap[
                         username
                     ];
-
 
                     console.log(
                         `${username} is offline`
@@ -434,19 +380,15 @@ io.on("connection", (socket) => {
                 }
             }
 
-
             io.emit(
                 "onlineUsers",
                 Object.keys(
                     userSocketMap
                 )
             );
-
         }
     );
-
 });
-
 
 // ==========================================
 // MONGODB CONNECTION
@@ -456,45 +398,33 @@ mongoose
     .connect(process.env.MONGO_URI)
 
     .then(() => {
-
         console.log(
             "Connected to MongoDB"
         );
 
-
         // ==================================
-        // LOCAL SERVER
+        // SERVER
         // ==================================
 
-        if (
-            process.env.NODE_ENV !==
-            "production"
-        ) {
+        const PORT =
+            process.env.PORT || 5000;
 
-            server.listen(
-                5000,
-                () => {
-
-                    console.log(
-                        "Server is Running on PORT 5000"
-                    );
-
-                }
-            );
-
-        }
-
+        server.listen(
+            PORT,
+            () => {
+                console.log(
+                    `Server is Running on PORT ${PORT}`
+                );
+            }
+        );
     })
 
     .catch((err) => {
-
         console.error(
             "MongoDB Connection Error:",
             err
         );
-
     });
-
 
 // ==========================================
 // VERCEL EXPORT
